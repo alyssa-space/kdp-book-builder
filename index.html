@@ -1,109 +1,150 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Alyssa Space - KDP Book Builder</title>
+<script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background: #f5f0fa;
-  color: #30243b;
-  padding: 20px;
-  margin: 0;
-}
-main {
-  max-width: 480px;
-  margin: 30px auto;
-  background: white;
-  padding: 24px;
-  border-radius: 18px;
-  box-shadow: 0 4px 20px #ddd;
-}
-h1 { color: #754b91; }
-label { display:block; margin-top:18px; }
-select, input, button {
-  box-sizing: border-box;
-  width: 100%;
-  padding: 13px;
-  margin-top: 8px;
-  border: 1px solid #ccc;
-  border-radius: 9px;
-  font-size: 16px;
-}
-button {
-  background: #754b91;
-  color: white;
-  border: 0;
-  margin-top: 22px;
-}
-#result {
-  background: #f3eafa;
-  padding: 16px;
-  margin-top: 20px;
-  border-radius: 10px;
-  display: none;
-}
-small { color: #777; }
+*{box-sizing:border-box}
+body{margin:0;padding:20px;background:#f5f0fa;color:#30243b;font-family:Arial,sans-serif}
+.container{max-width:650px;margin:auto}
+header{text-align:center;padding:25px 10px}
+h1{color:#70449a;margin-bottom:5px}
+.subtitle{color:#786b83}
+.card{background:white;padding:20px;margin:16px 0;border-radius:16px;box-shadow:0 3px 15px #34204a12}
+h2{font-size:19px;color:#70449a;margin-top:0}
+label{display:block;font-size:14px;margin:12px 0 6px}
+input,select{width:100%;padding:12px;border:1px solid #d9cce5;border-radius:9px;font-size:16px;background:white}
+button{width:100%;padding:14px;border:0;border-radius:10px;background:#70449a;color:white;font-size:16px;font-weight:bold;margin-top:15px}
+button:disabled{opacity:.5}
+.result{background:#f2eafa;padding:14px;border-radius:9px;margin-top:14px;line-height:1.7}
+.small{font-size:12px;color:#766b80;line-height:1.5}
+#status{margin-top:12px;font-size:14px;line-height:1.5}
+footer{text-align:center;color:#887b91;font-size:12px;padding:20px}
 </style>
 </head>
 <body>
-<main>
-<h1>Alyssa Space</h1>
-<p>KDP Book Size Calculator</p>
+<div class="container">
+<header>
+<h1>ALYSSA SPACE</h1>
+<div class="subtitle">KDP Book Builder</div>
+<p class="small">Simple tools for self-publishers worldwide</p>
+</header>
 
-<label>Trim Size</label>
-<select id="size">
-<option value="5,8">5 × 8 inches</option>
-<option value="5.5,8.5">5.5 × 8.5 inches</option>
-<option value="6,9" selected>6 × 9 inches</option>
-<option value="8,10">8 × 10 inches</option>
-<option value="8.5,11">8.5 × 11 inches</option>
-</select>
-
-<label>Page Count</label>
-<input id="pages" type="number" min="24" value="100">
-
-<label>Interior Bleed</label>
+<section class="card">
+<h2>01 · KDP Size Calculator</h2>
+<label>Trim width (inches)</label>
+<input id="trimW" type="number" value="6" step="0.001">
+<label>Trim height (inches)</label>
+<input id="trimH" type="number" value="9" step="0.001">
+<label>Bleed</label>
 <select id="bleed">
 <option value="no">No Bleed</option>
-<option value="yes">Bleed</option>
+<option value="yes" selected>Bleed</option>
+</select>
+<button onclick="calculate()">Calculate PDF Size</button>
+<div id="calcResult" class="result">Your PDF dimensions will appear here.</div>
+</section>
+
+<section class="card">
+<h2>02 · PDF Resizer</h2>
+<p class="small">Upload your interior PDF and resize every page to your chosen dimensions.</p>
+
+<label>Choose PDF file</label>
+<input id="pdfFile" type="file" accept="application/pdf">
+
+<label>Target width (inches)</label>
+<input id="targetW" type="number" value="6.125" step="0.001">
+
+<label>Target height (inches)</label>
+<input id="targetH" type="number" value="9.25" step="0.001">
+
+<label>Resize mode</label>
+<select id="mode">
+<option value="fit">FIT — Keep the full design, no cropping</option>
+<option value="fill">FILL — Fill the page, edges may be cropped</option>
 </select>
 
-<button onclick="calculate()">Calculate Size</button>
+<p class="small">FIT may leave blank space. FILL may crop parts of the original design.</p>
+<button id="resizeBtn" onclick="resizePDF()">Resize & Download PDF</button>
+<div id="status"></div>
+</section>
 
-<div id="result">
-<h3>Your PDF Page Size</h3>
-<p id="dimensions"></p>
-<small>Measurements are in inches.</small>
+<footer>© 2026 Alyssa Space · Built for creators</footer>
 </div>
-</main>
 
 <script>
-function calculate() {
-  const size = document.getElementById("size").value.split(",");
-  const pages = Number(document.getElementById("pages").value);
-  const bleed = document.getElementById("bleed").value;
+function calculate(){
+ const w=Number(document.getElementById('trimW').value);
+ const h=Number(document.getElementById('trimH').value);
+ const bleed=document.getElementById('bleed').value==='yes';
+ if(w<=0||h<=0){alert('Enter valid dimensions.');return;}
+ const finalW=w+(bleed?0.125:0);
+ const finalH=h+(bleed?0.25:0);
+ document.getElementById('calcResult').innerHTML=
+ '<b>PDF Width:</b> '+finalW.toFixed(3)+' inches<br>'+
+ '<b>PDF Height:</b> '+finalH.toFixed(3)+' inches<br>'+
+ '<b>Bleed:</b> '+(bleed?'Yes':'No');
+ document.getElementById('targetW').value=finalW.toFixed(3);
+ document.getElementById('targetH').value=finalH.toFixed(3);
+}
 
-  if (!Number.isInteger(pages) || pages < 24) {
-    alert("Enter at least 24 pages.");
-    return;
+async function resizePDF(){
+ const file=document.getElementById('pdfFile').files[0];
+ const w=Number(document.getElementById('targetW').value);
+ const h=Number(document.getElementById('targetH').value);
+ const mode=document.getElementById('mode').value;
+ const status=document.getElementById('status');
+ const btn=document.getElementById('resizeBtn');
+
+ if(!file){alert('Please select a PDF file first.');return;}
+ if(w<=0||h<=0){alert('Enter valid target dimensions.');return;}
+ if(!window.PDFLib){status.textContent='PDF library did not load. Check your internet connection and reload.';return;}
+
+ btn.disabled=true;
+ status.textContent='Processing your PDF... Please wait.';
+
+ try{
+  const {PDFDocument}=PDFLib;
+  const bytes=await file.arrayBuffer();
+  const source=await PDFDocument.load(bytes);
+  const output=await PDFDocument.create();
+  const embedded=await output.embedPdf(bytes);
+  const targetW=w*72;
+  const targetH=h*72;
+
+  for(let i=0;i<embedded.length;i++){
+   const original=embedded[i];
+   const scale=mode==='fit'
+    ?Math.min(targetW/original.width,targetH/original.height)
+    :Math.max(targetW/original.width,targetH/original.height);
+
+   const drawW=original.width*scale;
+   const drawH=original.height*scale;
+   const x=(targetW-drawW)/2;
+   const y=(targetH-drawH)/2;
+
+   const page=output.addPage([targetW,targetH]);
+   page.drawPage(original,{x,y,width:drawW,height:drawH});
+   status.textContent='Processing page '+(i+1)+' of '+embedded.length+'...';
   }
 
-  let width = Number(size[0]);
-  let height = Number(size[1]);
-
-  if (bleed === "yes") {
-    width += 0.125;
-    height += 0.25;
-  }
-
-  document.getElementById("dimensions").innerHTML =
-    "<b>Width:</b> " + width.toFixed(3) +
-    " in<br><b>Height:</b> " + height.toFixed(3) +
-    " in<br><b>Pages:</b> " + pages;
-
-  document.getElementById("result").style.display = "block";
+  const result=await output.save();
+  const blob=new Blob([result],{type:'application/pdf'});
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement('a');
+  link.href=url;
+  link.download=file.name.replace(/\.pdf$/i,'')+'_resized.pdf';
+  link.click();
+  setTimeout(()=>URL.revokeObjectURL(url),3000);
+  status.textContent='Done! Your resized PDF has been downloaded.';
+ }catch(error){
+  status.textContent='Error: '+error.message;
+ }finally{
+  btn.disabled=false;
+ }
 }
 </script>
 </body>
